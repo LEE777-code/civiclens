@@ -1,12 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const MODEL_NAME = import.meta.env.VITE_VISION_MODEL || 'gemini-1.5-flash';
 
 if (!API_KEY) {
-    console.error("VITE_GEMINI_API_KEY is not set. Please adding it to your .env file.");
+    console.error("VITE_GEMINI_API_KEY is not set. Please add it to your .env file.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const ai = new GoogleGenerativeAI(API_KEY || '');
 
 // System Instruction from user snippet
 const SYSTEM_INSTRUCTION_DESC = `You are an assistant that analyzes civic infrastructure issues from images. Your job is to examine the image and produce a short, clear description of the visible problem for a public civic report.
@@ -42,9 +43,12 @@ export async function generateImageDescription(imageData: string | File): Promis
             if (mimeMatch) mimeType = mimeMatch[1];
         }
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-09-2025',
-            contents: {
+        const response = await ai.getGenerativeModel({
+            model: MODEL_NAME,
+            systemInstruction: SYSTEM_INSTRUCTION_DESC,
+        }).generateContent({
+            contents: [{
+                role: 'user',
                 parts: [
                     {
                         inlineData: {
@@ -56,13 +60,10 @@ export async function generateImageDescription(imageData: string | File): Promis
                         text: "Analyze this image for civic infrastructure issues."
                     },
                 ],
-            },
-            config: {
-                systemInstruction: SYSTEM_INSTRUCTION_DESC,
-            },
+            }],
         });
 
-        const text = response.text || "No description generated";
+        const text = response.response.text();
         return text.replace(/^Description:\s*/i, '').trim();
 
     } catch (error: any) {
@@ -90,17 +91,18 @@ export async function generateImageTitle(imageData: string | File): Promise<stri
             if (mimeMatch) mimeType = mimeMatch[1];
         }
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-09-2025',
-            contents: {
+        const response = await ai.getGenerativeModel({ model: MODEL_NAME }).generateContent({
+            contents: [{
+                role: 'user',
                 parts: [
                     { inlineData: { data: base64Content, mimeType: mimeType } },
                     { text: "Suggest a brief, clear title (max 8 words) for this civic issue. Output ONLY the title." }
                 ]
-            }
+            }]
         });
 
-        return response.text ? response.text.trim() : "Report Issue";
+        const text = response.response.text();
+        return text ? text.trim() : "Report Issue";
     } catch (error) {
         console.error("Gemini API Error (Title):", error);
         return "Report Issue";
@@ -128,21 +130,22 @@ export async function suggestCategory(imageData: string | File): Promise<string>
 
         const prompt = `Categorize this civic issue into ONE of: Road Issues, Garbage & Cleanliness, Water / Drainage, Streetlight / Electricity, Public Safety, Public Facilities, Parks & Environment, Other. Output ONLY the category name.`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-preview-09-2025',
-            contents: {
+        const response = await ai.getGenerativeModel({ model: MODEL_NAME }).generateContent({
+            contents: [{
+                role: 'user',
                 parts: [
                     { inlineData: { data: base64Content, mimeType: mimeType } },
                     { text: prompt }
                 ]
-            }
+            }]
         });
 
-        const text = response.text ? response.text.trim() : "Other";
+        const text = response.response.text();
+        const categoryText = text ? text.trim() : "Other";
 
         // Simple validation
         const valid = ["Road Issues", "Garbage & Cleanliness", "Water", "Drainage", "Streetlight", "Electricity", "Public Safety", "Public Facilities", "Parks", "Environment"];
-        if (valid.some(v => text.includes(v))) return text;
+        if (valid.some(v => categoryText.includes(v))) return categoryText;
         return "Other";
 
     } catch (error) {

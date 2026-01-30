@@ -184,7 +184,7 @@ export const reportService = {
             return false;
         }
 
-       // Automatically notify user when admin views their report
+        // Automatically notify user when admin views their report
         try {
             // Get report owner's user_id and title
             const { data: report } = await supabase

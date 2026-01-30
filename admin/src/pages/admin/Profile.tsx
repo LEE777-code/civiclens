@@ -60,13 +60,15 @@ export default function Profile() {
   }
 
   // Generate performance data from issues
-  const performanceData = issues.reduce((acc: { month: string; resolved: number }[], issue: Issue) => {
+  const performanceData = (issues || []).reduce((acc: { month: string; resolved: number }[], issue: Issue) => {
     const month = new Date(issue.created_at).toLocaleDateString("en-US", { month: "short" });
     const existing = acc.find((item) => item.month === month);
 
-    if (existing && issue.status === "resolved") {
-      existing.resolved += 1;
-    } else if (!existing) {
+    if (existing) {
+      if (issue.status === "resolved") {
+        existing.resolved = (existing.resolved || 0) + 1;
+      }
+    } else {
       acc.push({
         month,
         resolved: issue.status === "resolved" ? 1 : 0,
@@ -78,7 +80,7 @@ export default function Profile() {
 
   // Status distribution for pie chart
   const statusData = [
-    { name: "Open", value: stats?.open || 0 },
+    { name: "Pending", value: stats?.pending || 0 },
     { name: "In Progress", value: stats?.inProgress || 0 },
     { name: "Resolved", value: stats?.resolved || 0 },
     { name: "Rejected", value: stats?.rejected || 0 },

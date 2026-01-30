@@ -18,22 +18,24 @@ export interface Issue {
   title: string;
   description: string;
   category: string;
-  status: 'open' | 'in-progress' | 'resolved' | 'rejected';
-  priority: 'low' | 'medium' | 'high';
-  location: string;
+  status: 'pending' | 'resolved' | 'rejected' | 'in-progress';
+  severity: 'low' | 'medium' | 'high';
+  location_name: string;
   latitude?: number;
   longitude?: number;
-  district: string;
-  state: string;
+  district?: string;
+  state?: string;
   image_url?: string;
-  reported_by: string;
+  user_id: string;
   reporter_name?: string;
-  is_anonymous: boolean;
+  is_anonymous?: boolean;
   upvotes: number;
   created_at: string;
   updated_at: string;
   resolved_at?: string;
   assigned_to?: string;
+  resolved_image_url?: string;
+  viewed_by_admin?: boolean;
 }
 
 export interface Admin {

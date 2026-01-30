@@ -25,7 +25,7 @@ export default function SignIn() {
     }
 
     // Try to login
-    const success = login(username, password);
+    const success = await login(username, password);
 
     if (success) {
       toast.success('Login successful!');

@@ -2,7 +2,7 @@ import { supabase, Issue } from '@/lib/supabase';
 
 export interface IssueFilters {
   status?: string;
-  priority?: string;
+  severity?: string;
   category?: string;
   state?: string;
   district?: string;
@@ -13,11 +13,11 @@ export interface IssueFilters {
 
 export interface IssueStats {
   total: number;
-  open: number;
+  pending: number;
   inProgress: number;
   resolved: number;
   rejected: number;
-  byPriority: {
+  bySeverity: {
     high: number;
     medium: number;
     low: number;
@@ -29,7 +29,7 @@ export const issueService = {
   // Fetch all issues with optional filters
   async getIssues(filters?: IssueFilters): Promise<Issue[]> {
     let query = supabase
-      .from('issues')
+      .from('reports')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -37,8 +37,8 @@ export const issueService = {
       query = query.eq('status', filters.status);
     }
 
-    if (filters?.priority && filters.priority !== 'all') {
-      query = query.eq('priority', filters.priority);
+    if (filters?.severity && filters.severity !== 'all') {
+      query = query.eq('severity', filters.severity);
     }
 
     if (filters?.category && filters.category !== 'all') {
@@ -78,7 +78,7 @@ export const issueService = {
   // Get single issue by ID
   async getIssueById(id: string): Promise<Issue | null> {
     const { data, error } = await supabase
-      .from('issues')
+      .from('reports')
       .select('*')
       .eq('id', id)
       .single();
@@ -107,7 +107,7 @@ export const issueService = {
     }
 
     const { error } = await supabase
-      .from('issues')
+      .from('reports')
       .update(updateData)
       .eq('id', id);
 
@@ -119,15 +119,15 @@ export const issueService = {
     return true;
   },
 
-  // Update issue priority
-  async updateIssuePriority(id: string, priority: Issue['priority']): Promise<boolean> {
+  // Update issue severity
+  async updateIssueSeverity(id: string, severity: Issue['severity']): Promise<boolean> {
     const { error } = await supabase
-      .from('issues')
-      .update({ priority, updated_at: new Date().toISOString() })
+      .from('reports')
+      .update({ severity, updated_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating issue priority:', error);
+      console.error('Error updating issue severity:', error);
       return false;
     }
 
@@ -136,7 +136,7 @@ export const issueService = {
 
   // Get issue statistics
   async getIssueStats(filters?: { state?: string; district?: string }): Promise<IssueStats | null> {
-    let query = supabase.from('issues').select('status, priority, category, created_at');
+    let query = supabase.from('reports').select('status, severity, category, created_at');
 
     if (filters?.state) {
       query = query.eq('state', filters.state);
@@ -155,14 +155,14 @@ export const issueService = {
 
     const stats: IssueStats = {
       total: data.length,
-      open: data.filter(i => i.status === 'open').length,
+      pending: data.filter(i => i.status === 'pending').length,
       inProgress: data.filter(i => i.status === 'in-progress').length,
       resolved: data.filter(i => i.status === 'resolved').length,
       rejected: data.filter(i => i.status === 'rejected').length,
-      byPriority: {
-        high: data.filter(i => i.priority === 'high').length,
-        medium: data.filter(i => i.priority === 'medium').length,
-        low: data.filter(i => i.priority === 'low').length,
+      bySeverity: {
+        high: data.filter(i => i.severity === 'high').length,
+        medium: data.filter(i => i.severity === 'medium').length,
+        low: data.filter(i => i.severity === 'low').length,
       },
       byCategory: data.reduce((acc: Record<string, number>, issue) => {
         acc[issue.category] = (acc[issue.category] || 0) + 1;
@@ -176,7 +176,7 @@ export const issueService = {
   // Get recent issues
   async getRecentIssues(limit: number = 10): Promise<Issue[]> {
     const { data, error } = await supabase
-      .from('issues')
+      .from('reports')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -192,7 +192,7 @@ export const issueService = {
   // Delete issue (admin only)
   async deleteIssue(id: string): Promise<boolean> {
     const { error } = await supabase
-      .from('issues')
+      .from('reports')
       .delete()
       .eq('id', id);
 
